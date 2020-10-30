@@ -4,14 +4,14 @@ This is a fork of AdamMagaluk's asio-ssl-mutual-auth, with the following changes
 - standalone Asio instead of Boost.Asio
 - fixed certificates so that server and client have separate keys, and certs are signed by a separate CA
 
-## How To
+# How To
 
-# Building
+## Building
 ```
 make
 ```
 
-# Testing
+## Testing
 ```
 ./server <port>
 ./client <host> <port> 
