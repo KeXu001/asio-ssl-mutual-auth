@@ -2,24 +2,22 @@
 // server.cpp
 // ~~~~~~~~~~
 //
-// Copyright (c) 2003-2010 Christopher M. Kohlhoff (chris at kohlhoff dot com)
-//
 // Distributed under the Boost Software License, Version 1.0. (See accompanying
 // file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
 //
 
-#include <cstdlib>
 #include <iostream>
-#include <boost/bind.hpp>
-#include <boost/asio.hpp>
-#include <boost/asio/ssl.hpp>
+#include <functional>
+#include <system_error>
+#include <asio.hpp>
+#include <asio/ssl.hpp>
 
-typedef boost::asio::ssl::stream<boost::asio::ip::tcp::socket> ssl_socket;
+typedef asio::ssl::stream<asio::ip::tcp::socket> ssl_socket;
 
 class session {
 public:
 
-    session(boost::asio::io_service& io_service, boost::asio::ssl::context& context)
+    session(asio::io_service& io_service, asio::ssl::context& context)
     : socket_(io_service, context) {
     }
 
@@ -28,40 +26,40 @@ public:
     }
 
     void start() {
-        socket_.async_handshake(boost::asio::ssl::stream_base::server,
-                boost::bind(&session::handle_handshake, this,
-                boost::asio::placeholders::error));
+        socket_.async_handshake(asio::ssl::stream_base::server,
+                bind(&session::handle_handshake, this,
+                std::placeholders::_1));
     }
 
-    void handle_handshake(const boost::system::error_code& error) {
+    void handle_handshake(const std::error_code& error) {
         if (!error) {
-            socket_.async_read_some(boost::asio::buffer(data_, max_length),
-                    boost::bind(&session::handle_read, this,
-                    boost::asio::placeholders::error,
-                    boost::asio::placeholders::bytes_transferred));
+            socket_.async_read_some(asio::buffer(data_, max_length),
+                    bind(&session::handle_read, this,
+                    std::placeholders::_1,
+                    std::placeholders::_2));
         } else {
             delete this;
         }
     }
 
-    void handle_read(const boost::system::error_code& error,
+    void handle_read(const std::error_code& error,
             size_t bytes_transferred) {
         if (!error) {
-            boost::asio::async_write(socket_,
-                    boost::asio::buffer(data_, bytes_transferred),
-                    boost::bind(&session::handle_write, this,
-                    boost::asio::placeholders::error));
+            asio::async_write(socket_,
+                    asio::buffer(data_, bytes_transferred),
+                    bind(&session::handle_write, this,
+                    std::placeholders::_1));
         } else {
             delete this;
         }
     }
 
-    void handle_write(const boost::system::error_code& error) {
+    void handle_write(const std::error_code& error) {
         if (!error) {
-            socket_.async_read_some(boost::asio::buffer(data_, max_length),
-                    boost::bind(&session::handle_read, this,
-                    boost::asio::placeholders::error,
-                    boost::asio::placeholders::bytes_transferred));
+            socket_.async_read_some(asio::buffer(data_, max_length),
+                    bind(&session::handle_read, this,
+                    std::placeholders::_1,
+                    std::placeholders::_2));
         } else {
             delete this;
         }
@@ -79,35 +77,35 @@ private:
 class server {
 public:
 
-    server(boost::asio::io_service& io_service, unsigned short port)
+    server(asio::io_service& io_service, unsigned short port)
     : io_service_(io_service),
     acceptor_(io_service,
-    boost::asio::ip::tcp::endpoint(boost::asio::ip::tcp::v4(), port)),
-    context_(io_service, boost::asio::ssl::context::sslv23) {
+    asio::ip::tcp::endpoint(asio::ip::tcp::v4(), port)),
+    context_(asio::ssl::context::sslv23) {
         
         
         
         context_.set_options(
-                boost::asio::ssl::context::default_workarounds
-                | boost::asio::ssl::context::no_sslv2
-                | boost::asio::ssl::context::single_dh_use);
+                asio::ssl::context::default_workarounds
+                | asio::ssl::context::no_sslv2
+                | asio::ssl::context::single_dh_use);
         
-        //context_.set_password_callback(boost::bind(&server::get_password, this));
+        //context_.set_password_callback(bind(&server::get_password, this));
 
         context_.use_certificate_chain_file("certs/server.crt");
-        context_.use_private_key_file("certs/server.key", boost::asio::ssl::context::pem);
+        context_.use_private_key_file("certs/server.key", asio::ssl::context::pem);
         context_.use_tmp_dh_file("certs/dh512.pem");
         
         /**
          * verify client auth
          */
-        context_.set_verify_mode(boost::asio::ssl::context::verify_fail_if_no_peer_cert | boost::asio::ssl::context::verify_peer);
+        context_.set_verify_mode(asio::ssl::context::verify_fail_if_no_peer_cert | asio::ssl::context::verify_peer);
         context_.load_verify_file("client_certs/server.crt");
         
         session* new_session = new session(io_service_, context_);
         acceptor_.async_accept(new_session->socket(),
-                boost::bind(&server::handle_accept, this, new_session,
-                boost::asio::placeholders::error));
+                bind(&server::handle_accept, this, new_session,
+                std::placeholders::_1));
     }
 
     std::string get_password() const {
@@ -115,22 +113,22 @@ public:
     }
 
     void handle_accept(session* new_session,
-            const boost::system::error_code& error) {
+            const std::error_code& error) {
         if (!error) {
             new_session->start();
             new_session = new session(io_service_, context_);
             acceptor_.async_accept(new_session->socket(),
-                    boost::bind(&server::handle_accept, this, new_session,
-                    boost::asio::placeholders::error));
+                    bind(&server::handle_accept, this, new_session,
+                    std::placeholders::_1));
         } else {
             delete new_session;
         }
     }
 
 private:
-    boost::asio::io_service& io_service_;
-    boost::asio::ip::tcp::acceptor acceptor_;
-    boost::asio::ssl::context context_;
+    asio::io_service& io_service_;
+    asio::ip::tcp::acceptor acceptor_;
+    asio::ssl::context context_;
 };
 
 int main(int argc, char* argv[]) {
@@ -140,7 +138,7 @@ int main(int argc, char* argv[]) {
             return 1;
         }
 
-        boost::asio::io_service io_service;
+        asio::io_service io_service;
 
         using namespace std; // For atoi.
         server s(io_service, atoi(argv[1]));
