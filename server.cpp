@@ -92,15 +92,15 @@ public:
         
         //context_.set_password_callback(bind(&server::get_password, this));
 
-        context_.use_certificate_chain_file("certs/server.crt");
-        context_.use_private_key_file("certs/server.key", asio::ssl::context::pem);
-        context_.use_tmp_dh_file("certs/dh512.pem");
+        context_.use_certificate_chain_file("server_certs/server.crt");
+        context_.use_private_key_file("server_certs/server.key", asio::ssl::context::pem);
+        context_.use_tmp_dh_file("dh/dhparam.pem");
         
         /**
          * verify client auth
          */
         context_.set_verify_mode(asio::ssl::context::verify_fail_if_no_peer_cert | asio::ssl::context::verify_peer);
-        context_.load_verify_file("client_certs/server.crt");
+        context_.load_verify_file("ca_certs/ca.crt");
         
         session* new_session = new session(io_service_, context_);
         acceptor_.async_accept(new_session->socket(),
