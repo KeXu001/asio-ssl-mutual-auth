@@ -108,9 +108,9 @@ public:
                 std::placeholders::_1));
     }
 
-    std::string get_password() const {
-        return "test";
-    }
+    // std::string get_password() const {
+    //     return "test";
+    // }
 
     void handle_accept(session* new_session,
             const std::error_code& error) {

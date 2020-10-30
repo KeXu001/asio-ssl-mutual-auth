@@ -31,9 +31,9 @@ public:
                 std::placeholders::_1, ++endpoint_iterator));
     }
 
-    std::string get_password() const {
-        return "test";
-    }
+    // std::string get_password() const {
+    //     return "test";
+    // }
 
     void handle_connect(const std::error_code& error,
             asio::ip::tcp::resolver::iterator endpoint_iterator) {
